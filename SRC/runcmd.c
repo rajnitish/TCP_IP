@@ -1,3 +1,6 @@
+#ifndef RUNCMD_C
+#define RUNCMD_C
+
 #include<string.h>
 #include<stdio.h>
 char ipcmd[100]={0};
@@ -26,3 +29,5 @@ status = pclose(fp);
  //sleep(1);
  return;
 }
+
+#endif
