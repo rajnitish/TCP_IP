@@ -1,3 +1,6 @@
+#ifndef FTPCLIENT_C
+#define FTPCLIENT_C
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -112,3 +115,8 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+<<<<<<< HEAD
+=======
+
+#endif
+>>>>>>> branch 'master' of https://github.com/rajnitish/TCP_IP
