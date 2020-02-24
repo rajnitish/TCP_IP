@@ -3,6 +3,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<dirent.h>
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include<unistd.h>
@@ -68,7 +69,7 @@ int SocketReceive(int hSocket,char* Rsp,short RvcSize)
     return shortRetval;
 }
 //main driver program
-int main(int argc, char *argv[])
+int ftpclientmain(int cmd,int argc, char *argv[])
 {
     int hSocket, read_size;
     struct sockaddr_in server;
@@ -114,5 +115,149 @@ int main(int argc, char *argv[])
         shutdown(hSocket,2);
     }
     return 0;
+}
+void call_lcd(char incmdparts[M][N])
+{
+
+	int ret = chdir(incmdparts[1]);
+	if(ret == -1){
+		perror("\nerror : ");
+	}
+
+	return;
+}
+void call_lls(char incmdparts[M][N], int cmdcnt)
+{
+
+	struct dirent **namelist;
+	int n;
+	if(argc < 1) {
+		printf("No cmd lls\n");
+	} else if (argc == 1) {
+		n=scandir(“.”,&namelist,NULL,alphasort);
+	} else {
+		n = scandir(argv[1], &namelist, NULL, alphasort);
+	}
+	if(n < 0) {
+		perror(“\nError: in scandir”);
+
+	} else {
+		while (n--) {
+			printf(“%s\n”,namelist[n]->d_name);
+			free(namelist[n]);
+		}
+		free(namelist);
+	}
+
+	return;
+}
+int mymain(int argc, char *argv[]) {
+	printf("\033[2J\033[0;0H");
+	printf("--------------------- DUMMY SHELL OS ELL 783 GROUP 6----------------------\n");
+
+	int maxcmds=9;
+	char * cmdlist[]={
+			"ls",
+			"cd",
+			"chmod",
+			"lls",
+			"lcd",
+			"lchmod",
+			"put",
+			"get",
+			"close"};
+
+
+
+	while(1){
+		char incmd[1000];
+		char incmdparts[M][N];
+		memset(incmd,0,sizeof(incmd));
+		memset(incmdparts,0,sizeof(incmdparts));
+		printf("\n$");
+		fflush(stdin);
+		gets(incmd);
+		char * token=NULL, *saveptr1=NULL, *str1=incmd;
+		int count=0;
+		for (count = 0 ; ; count++, str1 = NULL) {
+			token = strtok_r(str1,(char *)" ", &saveptr1);
+			if (token == NULL){
+
+				break;
+			}
+			strcpy(incmdparts[count],token);
+		}
+
+
+		int cmdfound=-1;
+		for(int i=0;i<maxcmds;i++){
+			if(strcmp(incmdparts[0],cmdlist[i])==0){
+				cmdfound=i;
+				break;
+			}
+		}
+
+		switch(cmdfound){
+		case 4://cd
+			call_lcd(incmdparts);
+			break;
+		case 3://copy
+			call_lls(incmdparts,count+1);
+			break;
+		case 2://path
+			callpath(incmdparts);
+			break;
+		case 3://pushd
+			callpushd(incmdparts);
+			break;
+		case 4://popd
+			callpopd();
+			break;
+		case 5://newshell
+			//callnewshell();
+			nshell++;
+			mymain(argc,argv);
+			break;
+		case 6://exit
+			puts("\n Exit Shell\n");
+			if(nshell==0){
+				exit(0);
+			} else{
+				nshell--;
+			}
+			break;
+		case 7://pwd
+			callpwd();
+			break;
+		case 8://pwd
+			callcreatefile(incmdparts);
+			break;
+		default:
+		{
+			int ret = 0;
+			char buffer[1000];
+			memset(buffer,0,sizeof(buffer));
+			if(find("/bin") != NULL){
+				sprintf(buffer,"/bin/%s",incmdparts[0]);
+				ret = fork();
+				if(ret ==0){
+					execlp(buffer,buffer,NULL);
+				}else{
+					wait(NULL);
+				}
+			}
+			else
+
+				puts("Invalid command");
+		}
+		}
+	}
+
+	return EXIT_SUCCESS;
+}
+
+int main(int argc, char *argv[]) {
+
+	mymain(argc, argv);
 }
 
