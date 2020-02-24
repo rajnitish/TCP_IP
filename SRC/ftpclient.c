@@ -154,7 +154,7 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 		n = scandir(incmdparts[1], &namelist, NULL, alphasort);
 	}
 	if(n < 0) {
-		printf(“Error: in scandir\n”);
+		puts(“Error in scan dir”);
 	} else {
 		while (n--) {
 			printf(“%s\n”,namelist[n]->d_name);
@@ -212,24 +212,24 @@ int mymain(int argc, char *argv[]) {
 		}
 
 		switch(cmdfound){
-		case 4://cd
-			call_lcd(incmdparts);
+
+		case 0://path
+			//call_ls(incmdparts);
+			break;
+		case 1://pushd
+			//call_cd(incmdparts);
+			break;
+		case 2://popd
+			//call_chmod();
 			break;
 		case 3://copy
 			call_lls(incmdparts,count+1);
 			break;
-		case 0://path
-			call_ls(incmdparts);
-			break;
-		case 1://pushd
-			call_cd(incmdparts);
-			break;
-		case 2://popd
-			call_chmod();
+		case 4://cd
+			call_lcd(incmdparts);
 			break;
 		case 5://newshell
 			//call_lchmod
-
 			break;
 		case 6://exit
 			//put
