@@ -8,7 +8,7 @@
 #include<unistd.h>
 
 
-
+//hjhj
 extern void RunCmd();
 
 extern char ipcmd[100];
