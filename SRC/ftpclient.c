@@ -154,10 +154,10 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 		n = scandir(incmdparts[1], &namelist, NULL, alphasort);
 	}
 	if(n < 0) {
-		puts(“Error in scan dir”);
+		puts("Error in scan dir");
 	} else {
 		while (n--) {
-			printf(“%s\n”,namelist[n]->d_name);
+			printf("%s\n",namelist[n]->d_name);
 			free(namelist[n]);
 		}
 		free(namelist);
@@ -246,18 +246,14 @@ int mymain(int argc, char *argv[]) {
 			int ret = 0;
 			char buffer[1000];
 			memset(buffer,0,sizeof(buffer));
-			if(find("/bin") != NULL){
-				sprintf(buffer,"/bin/%s",incmdparts[0]);
-				ret = fork();
-				if(ret ==0){
-					execlp(buffer,buffer,NULL);
-				}else{
-					wait(NULL);
-				}
-			}
-			else
 
-				puts("Invalid command");
+			sprintf(buffer,"/bin/%s",incmd);
+			ret = fork();
+			if(ret ==0){
+				execlp(buffer,buffer,NULL);
+			}else{
+				wait(NULL);
+			}
 		}
 		}
 	}
