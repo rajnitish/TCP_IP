@@ -8,9 +8,11 @@
 #include<arpa/inet.h>
 #include<unistd.h>
 
-//hhhhhhhhhhhhhhh
+#define M 100
+#define N 100
 
-//hjhj
+
+
 extern void RunCmd();
 
 extern char ipcmd[100];
@@ -116,12 +118,22 @@ int ftpclientmain(int cmd,int argc, char *argv[])
     }
     return 0;
 }
+
+void callpwd()
+{
+	char buff[500];
+	memset(buff,0,sizeof(buff));
+	getcwd(buff,sizeof(buff));
+	puts(buff);
+
+	return;
+}
 void call_lcd(char incmdparts[M][N])
 {
 
 	int ret = chdir(incmdparts[1]);
 	if(ret == -1){
-		perror("\nerror : ");
+		printf("\nerror in changedir");
 	}
 
 	return;
@@ -131,15 +143,18 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 
 	struct dirent **namelist;
 	int n;
-	if(argc < 1) {
+	if(cmdcnt < 1) {
 		printf("No cmd lls\n");
-	} else if (argc == 1) {
-		n=scandir(“.”,&namelist,NULL,alphasort);
+	} else if (cmdcnt == 1) {
+		char buff[500];
+		memset(buff,0,sizeof(buff));
+		getcwd(buff,sizeof(buff));
+		n=scandir(buff,&namelist,NULL,alphasort);
 	} else {
-		n = scandir(argv[1], &namelist, NULL, alphasort);
+		n = scandir(incmdparts[1], &namelist, NULL, alphasort);
 	}
 	if(n < 0) {
-		perror(“\nError: in scandir”);
+		printf(“\nError: in scandir”);
 
 	} else {
 		while (n--) {
