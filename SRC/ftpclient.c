@@ -213,32 +213,32 @@ int mymain(int argc, char *argv[]) {
 
 		switch(cmdfound){
 
-		case 0://path
+		case 0:
 			//call_ls(incmdparts);
 			break;
-		case 1://pushd
+		case 1:
 			//call_cd(incmdparts);
 			break;
-		case 2://popd
+		case 2:
 			//call_chmod();
 			break;
-		case 3://copy
+		case 3:
 			call_lls(incmdparts,count+1);
 			break;
-		case 4://cd
+		case 4:
 			call_lcd(incmdparts);
 			break;
-		case 5://newshell
+		case 5:
 			//call_lchmod
 			break;
 		case 6://exit
 			//put
 
 			break;
-		case 7://pwd
+		case 7:
 			//get
 			break;
-		case 8://pwd
+		case 8:
 			//close
 			break;
 		default:
