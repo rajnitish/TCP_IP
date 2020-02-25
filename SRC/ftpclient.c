@@ -130,10 +130,22 @@ void callpwd()
 }
 void call_lcd(char incmdparts[M][N])
 {
+	if(strcmp(incmdparts[1], NULL) == 0){
 
-	int ret = chdir(incmdparts[1]);
-	if(ret == -1){
-		printf("\nerror in changedir");
+		int ret = chdir("$(HOME)");
+		if(ret == -1){
+			printf("\nerror in changedir");
+		}
+	}else if(strcmp(incmdparts[1], "..") == 0){
+		//char buffer[1000];
+		//memset(buffer,0,1000);
+		//sprintf("%s/%s",incmdparts[1],incmdparts[1])
+	} else{
+
+		int ret = chdir(incmdparts[1]);
+		if(ret == -1){
+			printf("\nerror in changedir");
+		}
 	}
 
 	return;
@@ -154,7 +166,7 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 		n = scandir(incmdparts[1], &namelist, NULL, alphasort);
 	}
 	if(n < 0) {
-		puts("Error in scan dir");
+		printf("Error in scan dircmdcnt=%d, n=%d\n",cmdcnt,n);
 	} else {
 		while (n--) {
 			printf("%s\n",namelist[n]->d_name);
@@ -223,7 +235,7 @@ int mymain(int argc, char *argv[]) {
 			//call_chmod();
 			break;
 		case 3:
-			call_lls(incmdparts,count+1);
+			call_lls(incmdparts,count);
 			break;
 		case 4:
 			call_lcd(incmdparts);
@@ -246,7 +258,6 @@ int mymain(int argc, char *argv[]) {
 			int ret = 0;
 			char buffer[1000];
 			memset(buffer,0,sizeof(buffer));
-
 			sprintf(buffer,"/bin/%s",incmd);
 			ret = fork();
 			if(ret ==0){
