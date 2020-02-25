@@ -36,6 +36,8 @@ int BindCreatedSocket(int hSocket)
 
 //-------
 
+char servlocopcmd[100000];
+
 void callpwd()
 {
 	char buff[500];
@@ -82,16 +84,25 @@ void call_ls(char incmdparts[M][N], int cmdcnt)
 	} else {
 		n = scandir(incmdparts[1], &namelist, NULL, alphasort);
 	}
+
+	memset(servlocopcmd,0,100000);
 	if(n < 0) {
 		printf("Error in scan dircmdcnt=%d, n=%d\n",cmdcnt,n);
 	} else {
 		while (n--) {
+
 			printf("%s\n",namelist[n]->d_name);
+			strcat(servlocopcmd,namelist[n]->d_name);
 			free(namelist[n]);
 		}
 		free(namelist);
 	}
-
+	// send data to client
+	if( send(sock, servlocopcmd, strlen(servlocopcmd), 0) < 0)
+	{
+		printf("Send failed");
+	}
+	memset(servlocopcmd,0,100000);
 	return;
 }
 
@@ -231,10 +242,10 @@ int main(int argc, char *argv[])
 		switch(cmdfound){
 
 		case 0:
-			call_lls(incmdparts,count);
+			call_ls(incmdparts,count);
 			break;
 		case 1:
-			call_lcd(incmdparts);
+			call_cd(incmdparts);
 			break;
 		case 2:
 			//call_lchmod

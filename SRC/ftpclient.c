@@ -71,7 +71,7 @@ int SocketReceive(int hSocket,char* Rsp,short RvcSize)
     return shortRetval;
 }
 //main driver program
-int ftpclientmain(int cmd,int argc, char *argv[])
+int ftpclientconnecttoserver(int argc, char *argv[])
 {
     int hSocket, read_size;
     struct sockaddr_in server;
@@ -89,12 +89,17 @@ int ftpclientmain(int cmd,int argc, char *argv[])
     if (SocketConnect(hSocket) < 0)
     {
         perror("connect failed.\n");
-        return 1;
+        return -1;
     }
     printf("Sucessfully conected with server\n");
-    printf("Enter the Message: ");
     
-    gets(SendToServer);
+    return 0
+
+}
+    //printf("Enter the Message: ");
+int ftpclientconnecttoserver()
+{
+	gets(SendToServer);
     if(strcmp("lls",SendToServer)==0){
         memset(ipcmd,0,100);
         sprintf(ipcmd,"%s","ls");
@@ -111,11 +116,17 @@ int ftpclientmain(int cmd,int argc, char *argv[])
         //Received the data from the server
         read_size = SocketReceive(hSocket, server_reply, 200);
         printf("Server Response : %s\n\n",server_reply);
+    }
+}
+
+intf tpservedisconnect()
+{
         close(hSocket);
         shutdown(hSocket,0);
         shutdown(hSocket,1);
         shutdown(hSocket,2);
-    }
+
+
     return 0;
 }
 
