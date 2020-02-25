@@ -32,6 +32,71 @@ int BindCreatedSocket(int hSocket)
     iRetval = bind(hSocket,(struct sockaddr *)&remote,sizeof(remote));
     return iRetval;
 }
+
+
+//-------
+
+void callpwd()
+{
+	char buff[500];
+	memset(buff,0,sizeof(buff));
+	getcwd(buff,sizeof(buff));
+	puts(buff);
+
+	return;
+}
+void call_cd(char incmdparts[M][N])
+{
+	if(strcmp(incmdparts[1], NULL) == 0){
+
+		int ret = chdir("$(HOME)");
+		if(ret == -1){
+			printf("\nerror in changedir");
+		}
+	}else if(strcmp(incmdparts[1], "..") == 0){
+		//char buffer[1000];
+		//memset(buffer,0,1000);
+		//sprintf("%s/%s",incmdparts[1],incmdparts[1])
+	} else{
+
+		int ret = chdir(incmdparts[1]);
+		if(ret == -1){
+			printf("\nerror in changedir");
+		}
+	}
+
+	return;
+}
+void call_ls(char incmdparts[M][N], int cmdcnt)
+{
+
+	struct dirent **namelist;
+	int n=0;
+	if(cmdcnt < 1) {
+		printf("No cmd lls\n");
+	} else if (cmdcnt == 1) {
+		char buff[500];
+		memset(buff,0,sizeof(buff));
+		getcwd(buff,sizeof(buff));
+		n=scandir(buff,&namelist,NULL,alphasort);
+	} else {
+		n = scandir(incmdparts[1], &namelist, NULL, alphasort);
+	}
+	if(n < 0) {
+		printf("Error in scan dircmdcnt=%d, n=%d\n",cmdcnt,n);
+	} else {
+		while (n--) {
+			printf("%s\n",namelist[n]->d_name);
+			free(namelist[n]);
+		}
+		free(namelist);
+	}
+
+	return;
+}
+
+
+//------
 int main(int argc, char *argv[])
 {
     int socket_desc, sock, clientLen, read_size;
@@ -58,6 +123,15 @@ int main(int argc, char *argv[])
     //Listen
     listen(socket_desc, 3);
     //Accept and incoming connection
+
+	char * cmdlist[]={
+			"ls",
+			"cd",
+			"chmod",
+			"put",
+			"get",
+			"close"};
+
     while(1)
     {
         printf("Waiting for incoming connections...\n");
@@ -78,7 +152,36 @@ int main(int argc, char *argv[])
             printf("recv failed");
             break;
         }
-        printf("Client reply : %s\n",client_message);
+        printf("Client reply : %s recieved\n",client_message);
+
+        char incmd[1000];
+		char incmdparts[M][N];
+		memset(incmd,0,sizeof(incmd));
+		memset(incmdparts,0,sizeof(incmdparts));
+		sprintf(incmd,"%s",client_message);
+		printf("\n$");
+
+		char * token=NULL, *saveptr1=NULL, *str1=incmd;
+		int count=0;
+		for (count = 0 ; ; count++, str1 = NULL) {
+			token = strtok_r(str1,(char *)" ", &saveptr1);
+			if (token == NULL){
+
+				break;
+			}
+			strcpy(incmdparts[count],token);
+		}
+
+
+		int cmdfound=-1;
+		for(int i=0;i<maxcmds;i++){
+			if(strcmp(incmdparts[0],cmdlist[i])==0){
+				cmdfound=i;
+				break;
+			}
+		}
+
+		/*
         if(strcmp("ls",client_message)==0)
         {
             memset(ipcmd,0,100);
@@ -123,7 +226,49 @@ int main(int argc, char *argv[])
             strcpy(message,"Invalid cmd mps !");
         }
         
-        
+        */
+
+		switch(cmdfound){
+
+		case 0:
+			call_lls(incmdparts,count);
+			break;
+		case 1:
+			call_lcd(incmdparts);
+			break;
+		case 2:
+			//call_lchmod
+			int i;
+			i = atoi(incmdparts[1]);
+			if (chmod (incmdparts[3],i) < 0)
+				printf("error in chmod");
+			break;
+		case 4:
+			//put
+			// send file to server
+			break;
+		case 5:
+			//get
+			// get file from server
+			break;
+		case 6:
+			//close
+			// disconnect from the server
+			break;
+		default:
+		{
+			int ret = 0;
+			char buffer[1000];
+			memset(buffer,0,sizeof(buffer));
+			sprintf(buffer,"/bin/%s",incmd);
+			ret = fork();
+			if(ret ==0){
+				execlp(buffer,buffer,NULL);
+			}else{
+				wait(NULL);
+			}
+		}
+		}
         
         close(sock);
         sleep(1);

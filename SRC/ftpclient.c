@@ -154,7 +154,7 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 {
 
 	struct dirent **namelist;
-	int n;
+	int n=0;
 	if(cmdcnt < 1) {
 		printf("No cmd lls\n");
 	} else if (cmdcnt == 1) {
@@ -226,13 +226,13 @@ int mymain(int argc, char *argv[]) {
 		switch(cmdfound){
 
 		case 0:
-			//call_ls(incmdparts);
+			// send ls command to server
 			break;
 		case 1:
-			//call_cd(incmdparts);
+			// send cd command to server
 			break;
 		case 2:
-			//call_chmod();
+			//send chmod command to server
 			break;
 		case 3:
 			call_lls(incmdparts,count);
@@ -242,16 +242,22 @@ int mymain(int argc, char *argv[]) {
 			break;
 		case 5:
 			//call_lchmod
+			int i;
+			i = atoi(incmdparts[1]);
+			if (chmod (incmdparts[3],i) < 0)
+				printf("error in chmod");
 			break;
-		case 6://exit
+		case 6:
 			//put
-
+			// send file to server
 			break;
 		case 7:
 			//get
+			// get file from server
 			break;
 		case 8:
 			//close
+			// disconnect from the server
 			break;
 		default:
 		{
