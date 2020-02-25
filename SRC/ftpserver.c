@@ -1,5 +1,4 @@
-#ifndef FTPSERVER_C
-#define FTPSERVER_C
+
 
 #include<stdio.h>
 #include<string.h>
@@ -12,6 +11,13 @@ extern char ipcmd[100];
 extern char opcmd[10000];
 extern int status;
 
+#define M 100
+#define N 100
+
+
+//-----
+
+int  sock;
 short SocketCreate(void)
 {
     short hSocket;
@@ -110,7 +116,7 @@ void call_ls(char incmdparts[M][N], int cmdcnt)
 //------
 int main(int argc, char *argv[])
 {
-    int socket_desc, sock, clientLen, read_size;
+    int socket_desc, clientLen, read_size;
     struct sockaddr_in server, client;
     char client_message[200]= {0};
     char message[100] = {0};
@@ -135,6 +141,7 @@ int main(int argc, char *argv[])
     listen(socket_desc, 3);
     //Accept and incoming connection
 
+    int maxcmds=6;
 	char * cmdlist[]={
 			"ls",
 			"cd",
@@ -249,10 +256,12 @@ int main(int argc, char *argv[])
 			break;
 		case 2:
 			//call_lchmod
+			{
 			int i;
 			i = atoi(incmdparts[1]);
 			if (chmod (incmdparts[3],i) < 0)
 				printf("error in chmod");
+			}
 			break;
 		case 4:
 			//put
@@ -287,4 +296,4 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-#endif
+

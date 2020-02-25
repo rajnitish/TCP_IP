@@ -70,13 +70,14 @@ int SocketReceive(int hSocket,char* Rsp,short RvcSize)
     //printf("Response %s\n",Rsp);
     return shortRetval;
 }
-//main driver program
+//-------
+
+int hSocket, read_size;
+
 int ftpclientconnecttoserver(int argc, char *argv[])
 {
-    int hSocket, read_size;
-    struct sockaddr_in server;
-    char SendToServer[100] = {0};
-    char server_reply[200] = {0};
+
+	struct sockaddr_in server;
     //Create socket
     hSocket = SocketCreate();
     if(hSocket == -1)
@@ -93,18 +94,20 @@ int ftpclientconnecttoserver(int argc, char *argv[])
     }
     printf("Sucessfully conected with server\n");
     
-    return 0
+    return 0;
 
 }
     //printf("Enter the Message: ");
-int ftpclientconnecttoserver()
+int ftpclientsendtoserver(char incmdparts[M][N])
 {
-	gets(SendToServer);
+    char SendToServer[100] = {0};
+    char server_reply[200] = {0};
+	//gets(SendToServer);
     if(strcmp("lls",SendToServer)==0){
         memset(ipcmd,0,100);
         sprintf(ipcmd,"%s","ls");
-        RunCmd();
-        puts(opcmd);
+        //RunCmd();
+        //puts(opcmd);
         memset(opcmd,0,10000);
         
     } else if(strcmp("lcd",SendToServer)==0){
@@ -119,7 +122,7 @@ int ftpclientconnecttoserver()
     }
 }
 
-intf tpservedisconnect()
+intf ftpservedisconnect()
 {
         close(hSocket);
         shutdown(hSocket,0);
