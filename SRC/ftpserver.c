@@ -5,6 +5,7 @@
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include<unistd.h>
+#include<dirent.h>
 extern void RunCmd();
 
 extern char ipcmd[100];

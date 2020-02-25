@@ -122,7 +122,7 @@ int ftpclientsendtoserver(char incmdparts[M][N])
     }
 }
 
-intf ftpservedisconnect()
+int ftpservedisconnect()
 {
         close(hSocket);
         shutdown(hSocket,0);
@@ -256,10 +256,12 @@ int mymain(int argc, char *argv[]) {
 			break;
 		case 5:
 			//call_lchmod
+		{
 			int i;
 			i = atoi(incmdparts[1]);
 			if (chmod (incmdparts[3],i) < 0)
 				printf("error in chmod");
+		}
 			break;
 		case 6:
 			//put
