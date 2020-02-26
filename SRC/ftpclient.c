@@ -98,26 +98,42 @@ int ftpclientconnecttoserver(int argc, char *argv[])
 
 }
     //printf("Enter the Message: ");
-int ftpclientsendtoserver(char incmdparts[M][N])
+int ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 {
     char SendToServer[100] = {0};
-    char server_reply[200] = {0};
+    char server_reply[100000] = {0};
 	//gets(SendToServer);
-    if(strcmp("lls",SendToServer)==0){
-        memset(ipcmd,0,100);
-        sprintf(ipcmd,"%s","ls");
-        //RunCmd();
-        //puts(opcmd);
-        memset(opcmd,0,10000);
-        
-    } else if(strcmp("lcd",SendToServer)==0){
-       // code for cd , cd .. , cd givendir usind chdir()
-    } else{
-           
-        //Send data to the server
-        SocketSend(hSocket, SendToServer, strlen(SendToServer));
+    if(strcmp("get",incmdparts[0])==0){
+    	//Send data to the server
+		SocketSend(hSocket, incmd, strlen(incmd));
+		//Received the data from the server
+		FILE *fp = fopen(incmdparts[1],"w+");
+		do{
+			memset(server_reply,0,100000);
+			read_size = SocketReceive(hSocket, server_reply, 100000);
+			fputs(server_reply,fp);
+			printf("Server Response : %s\n\n",server_reply);
+		}while(server_reply[0]!=EOF);
+		fclose(fp);
+
+    } else if(strcmp("put",incmdparts[0])==0){
+    	//Send data to the server
+		SocketSend(hSocket, incmd, strlen(incmd));
+		//Received the data from the server
+		FILE *fp = fopen(incmdparts[1],"r+");
+		do{
+			memset(server_reply,0,100000);
+			fgets(server_reply,50,fp);
+			read_size = SocketSend(hSocket, server_reply, strlen(server_reply));
+			printf("transmitted to server : %s\n\n",server_reply);
+		}while(server_reply[0]!=EOF);
+		fclose(fp);
+
+    }else{
+    	//Send data to the server
+        SocketSend(hSocket, incmd, strlen(incmd));
         //Received the data from the server
-        read_size = SocketReceive(hSocket, server_reply, 200);
+        read_size = SocketReceive(hSocket, server_reply, 100000);
         printf("Server Response : %s\n\n",server_reply);
     }
 }
@@ -192,6 +208,9 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 	return;
 }
 int mymain(int argc, char *argv[]) {
+
+
+	ftpclientconnecttoserver(argc,argv);
 	printf("\033[2J\033[0;0H");
 	printf("--------------------- DUMMY SHELL OS ELL 783 GROUP 6----------------------\n");
 
@@ -241,12 +260,15 @@ int mymain(int argc, char *argv[]) {
 
 		case 0:
 			// send ls command to server
+			ftpclientsendtoserver( incmd ,incmdparts);
 			break;
 		case 1:
 			// send cd command to server
+			ftpclientsendtoserver(incmd, incmdparts);
 			break;
 		case 2:
 			//send chmod command to server
+			ftpclientsendtoserver(incmd,incmdparts);
 			break;
 		case 3:
 			call_lls(incmdparts,count);
@@ -266,14 +288,17 @@ int mymain(int argc, char *argv[]) {
 		case 6:
 			//put
 			// send file to server
+			ftpclientsendtoserver(incmd,incmdparts);
 			break;
 		case 7:
 			//get
 			// get file from server
+			ftpclientsendtoserver(incmd,incmdparts);
 			break;
 		case 8:
 			//close
 			// disconnect from the server
+			ftpservedisconnect();
 			break;
 		default:
 		{
