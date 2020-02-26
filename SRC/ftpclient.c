@@ -87,7 +87,7 @@ int ftpclientconnecttoserver(int argc, char *argv[])
     }
     printf("Socket is created\n");
     //Connect to remote server
-    if (SocketConnect(hSocket) < 0)
+    if (connect(hSocket, (struct sockaddr*)&server, sizeof(server)) != 0)
     {
         perror("connect failed.\n");
         return -1;
