@@ -18,7 +18,7 @@ extern void RunCmd();
 extern char ipcmd[100];
 extern char opcmd[10000];
 extern int status;
-
+char BUF[1000];
 //Create a Socket for server communication
 short SocketCreate(void)
 {
@@ -87,55 +87,66 @@ int ftpclientconnecttoserver(int argc, char *argv[])
     }
     printf("Socket is created\n");
     //Connect to remote server
-    if (connect(hSocket, (struct sockaddr*)&server, sizeof(server)) != 0)
+    if (SocketConnect(hSocket) != 0)
     {
         perror("connect failed.\n");
         return -1;
     }
-    printf("Sucessfully conected with server\n");
+    printf("Successfully conected with server\n");
     
     return 0;
 
 }
-    //printf("Enter the Message: ");
-int ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
+ // File transfer
+void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 {
     char SendToServer[100] = {0};
-    char server_reply[100000] = {0};
+    int size= 100000;
+    char server_reply[size];
+    bzero(server_reply, size);
 	//gets(SendToServer);
+    // receiving a file from the server
     if(strcmp("get",incmdparts[0])==0){
     	//Send data to the server
 		SocketSend(hSocket, incmd, strlen(incmd));
 		//Received the data from the server
 		FILE *fp = fopen(incmdparts[1],"w+");
-		do{
-			memset(server_reply,0,100000);
-			read_size = SocketReceive(hSocket, server_reply, 100000);
+		if ( fp == NULL )
+		    {
+		        printf( "\n file failed to open." ) ;
+		    }
+		else
+			{do{
+			memset(server_reply,0,size);
+			read_size = SocketReceive(hSocket, server_reply, size);
 			fputs(server_reply,fp);
-			printf("Server Response : %s\n\n",server_reply);
-		}while(server_reply[0]!=EOF);
-		fclose(fp);
 
-    } else if(strcmp("put",incmdparts[0])==0){
+		}while(server_reply[0]!=NULL);
+			printf("Server Response : %s\n\n",server_reply);
+		fclose(fp);
+			}
+    } else if(strcmp("put",incmdparts[0])==0){ // uploading file to the server
     	//Send data to the server
 		SocketSend(hSocket, incmd, strlen(incmd));
 		//Received the data from the server
 		FILE *fp = fopen(incmdparts[1],"r+");
 		do{
-			memset(server_reply,0,100000);
-			fgets(server_reply,50,fp);
+			memset(server_reply,0,size);
+			fgets(server_reply,5,fp);
 			read_size = SocketSend(hSocket, server_reply, strlen(server_reply));
-			printf("transmitted to server : %s\n\n",server_reply);
-		}while(server_reply[0]!=EOF);
+
+		}while(server_reply[0]!=NULL);
+		printf("transmitted to server : %s\n\n",server_reply);
 		fclose(fp);
 
     }else{
     	//Send data to the server
         SocketSend(hSocket, incmd, strlen(incmd));
         //Received the data from the server
-        read_size = SocketReceive(hSocket, server_reply, 100000);
+        read_size = SocketReceive(hSocket, server_reply, size);
         printf("Server Response : %s\n\n",server_reply);
     }
+    return;
 }
 
 int ftpservedisconnect()
@@ -207,6 +218,9 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 
 	return;
 }
+
+
+
 int mymain(int argc, char *argv[]) {
 
 
