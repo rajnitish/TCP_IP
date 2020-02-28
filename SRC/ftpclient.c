@@ -119,7 +119,8 @@ void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 			{do{
 			memset(server_reply,0,size);
 			read_size = SocketReceive(hSocket, server_reply, size);
-			fputs(server_reply,fp);
+			//fputs(server_reply,fp);
+			write(fp, server_reply, size);
 
 		}while(server_reply[0]!=NULL);
 			printf("Server Response : %s\n\n",server_reply);
@@ -132,7 +133,8 @@ void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 		FILE *fp = fopen(incmdparts[1],"r+");
 		do{
 			memset(server_reply,0,size);
-			fgets(server_reply,5,fp);
+			//fgets(server_reply,5,fp);
+			read(fp,server_reply,size);
 			read_size = SocketSend(hSocket, server_reply, strlen(server_reply));
 
 		}while(server_reply[0]!=NULL);
