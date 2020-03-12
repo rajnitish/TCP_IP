@@ -100,63 +100,64 @@ int ftpclientconnecttoserver(int argc, char *argv[])
 // File transfer
 void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 {
-	char SendToServer[BUFF_SIZE] = {0};
-
-	puts(incmdparts[1]);
-	int size= 100000;
-	char server_reply[size];
-	bzero(server_reply, size);
-	//gets(SendToServer);
-
+	char server_reply[BUFF_SIZE];
+	bzero(server_reply, BUFF_SIZE);
 
 	if(!strcmp("get",incmdparts[0])) // receiving a file from the server
 	{
 
-		printf(incmd);
-
-		puts("\n");
 		SocketSend(hSocket, incmd, BUFF_SIZE); //Send data to the server
 
 		FILE *fp = fopen(incmdparts[1],"w+");  //Received the data from the server
 		if ( fp == NULL )
 		{
-			perror( "\n file failed to open." ) ;
+			printf("\nFile Open Error\n");
 		}
 		else
 		{
 			do
 			{
-				memset(server_reply,0,size);
-				read_size = SocketReceive(hSocket, server_reply, size);
-				fputs(server_reply,fp);
-				write(fp, server_reply, size);
+				memset(server_reply,'\0',BUFF_SIZE);
+				read_size = SocketReceive(hSocket, server_reply, BUFF_SIZE);
+				sleep(1);
+				fprintf(fp,"%s",server_reply);
+				printf("Server Response : %s\n\n",server_reply);
 
-			}while(server_reply[0]!=NULL);
+			}while(read_size != -1);
 
-			printf("Server Response : %s\n\n",server_reply);
+
 			fclose(fp);
 		}
 	}
 	else if(!strcmp("put",incmdparts[0])) // uploading file to the server
 	{
-		SocketSend(hSocket, incmd, strlen(incmd)); //Send data to the server
-		//Received the data from the server
-		FILE *fp = fopen(incmdparts[1],"r+");
-		do{
-			memset(server_reply,0,size);
-			//fgets(server_reply,5,fp);
-			read(fp,server_reply,size);
-			read_size = SocketSend(hSocket, server_reply, strlen(server_reply));
 
-		}while(server_reply[0]!=NULL);
-		printf("transmitted to server : %s\n\n",server_reply);
-		fclose(fp);
+		//Send data to the server
+		SocketSend(hSocket, incmd, strlen(incmd));
+		sleep(1);
+
+		FILE *fp = NULL;
+		if((fp = fopen(incmdparts[1],"r+"))== NULL)
+		{
+			printf("File Open Error\n");
+		}
+		else
+		{
+			do{
+				memset(server_reply,'\0',BUFF_SIZE);
+				fgets(server_reply,BUFF_SIZE,fp);
+				read_size = SocketSend(hSocket, server_reply, BUFF_SIZE);
+				sleep(1);
+				printf("Transmitted to Server : %s\n\n",server_reply);
+			}while(!feof(fp));
+			fclose(fp);
+		}
 
 	}else{
 		//Send data to the server
 		SocketSend(hSocket, incmd, strlen(incmd));
 		//Received the data from the server
-		read_size = SocketReceive(hSocket, server_reply, size);
+		read_size = SocketReceive(hSocket, server_reply, BUFF_SIZE);
 		printf("Server Response : %s\n\n",server_reply);
 	}
 	return;
@@ -292,7 +293,7 @@ int mymain(int argc, char *argv[]) {
 		case 2:
 		case 6:
 		case 7:
-			ftpclientsendtoserver( incmd ,incmdparts);
+			ftpclientsendtoserver( incmd1 ,incmdparts);
 			break;
 		case 3:
 			call_lls(incmdparts,count);
@@ -306,7 +307,7 @@ int mymain(int argc, char *argv[]) {
 			int i;
 			i = atoi(incmdparts[1]);
 			if (chmod (incmdparts[3],i) < 0)
-				printf("error in chmod");
+				printf("Error in chmod");
 		}
 		break;
 		case 8:

@@ -1,1 +1,1 @@
-ls repeatdly not working.
+1. Once put has been started.. Failed in writing happend after succesfully writing. Needs to revisit. Known issue.

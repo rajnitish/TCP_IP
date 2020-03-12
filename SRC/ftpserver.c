@@ -18,7 +18,9 @@ extern int status;
 
 #define BUFF_SIZE 1500
 
+char servlocopcmd[100000];
 int  sock;
+
 short CreateSocket(void)
 {
 	short hSocket;
@@ -40,7 +42,37 @@ int BindSocket(int hSocket)
 	return iRetval;
 }
 
-char servlocopcmd[100000];
+int SocketSend(char* Rqst,short lenRqst)
+{
+	int shortRetval = -1;
+	struct timeval tv;
+	tv.tv_sec = 20;  /* 20 Secs Timeout */
+	tv.tv_usec = 0;
+	if(setsockopt(sock,SOL_SOCKET,SO_SNDTIMEO,(char *)&tv,sizeof(tv)) < 0)
+	{
+		printf("Time Out\n");
+		return -1;
+	}
+	shortRetval = send(sock, Rqst, lenRqst, 0);
+	return shortRetval;
+}
+//receive the data from the server
+int SocketReceive(char* Rsp,short RvcSize)
+{
+	int shortRetval = -1;
+	struct timeval tv;
+	tv.tv_sec = 20;  /* 20 Secs Timeout */
+	tv.tv_usec = 0;
+	if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,(char *)&tv,sizeof(tv)) < 0)
+	{
+		printf("Time Out\n");
+		return -1;
+	}
+	shortRetval = recv(sock, Rsp, RvcSize, 0);
+	//printf("Response %s\n",Rsp);
+	return shortRetval;
+}
+
 
 void callpwd()
 {
@@ -78,24 +110,34 @@ void call_ls(char incmdparts[M][N], int cmdcnt)
 
 	struct dirent **namelist;
 	int n=0;
-	if(cmdcnt < 1) {
+	if(cmdcnt < 1)
+	{
 		printf("No cmd lls\n");
-	} else if (cmdcnt == 1) {
+	}
+	else if (cmdcnt == 1)
+	{
 		char buff[500];
 		memset(buff,0,sizeof(buff));
 		getcwd(buff,sizeof(buff));
 		n=scandir(buff,&namelist,NULL,alphasort);
-	} else {
+	}
+	else
+	{
 		n = scandir(incmdparts[1], &namelist, NULL, alphasort);
 	}
 
 	memset(servlocopcmd,0,100000);
-	if(n < 0) {
+	if(n < 0)
+	{
 		printf("Error in scan dircmdcnt=%d, n=%d\n",cmdcnt,n);
-	} else {
-		while (n--) {
+	}
+	else
+	{
+		while (n--)
+		{
 
 			printf("%s\n",namelist[n]->d_name);
+			strcat(servlocopcmd,"\n");
 			strcat(servlocopcmd,namelist[n]->d_name);
 			free(namelist[n]);
 		}
@@ -110,36 +152,77 @@ void call_ls(char incmdparts[M][N], int cmdcnt)
 	return;
 }
 
+
+void serve_put(char incmdparts[M][N], int cmdcnt)
+{
+	if(cmdcnt < 2)
+	{
+		printf("Argument of get not passed\n");
+	}
+	else if (cmdcnt == 2)
+	{
+
+		FILE *fp = fopen(incmdparts[1],"a+");
+		if ( fp == NULL )
+		{
+			printf( "\n file failed to open.\n" ) ;
+		}
+		else
+		{
+			int read_size;
+
+			do{
+
+				memset(servlocopcmd,'\0',BUFF_SIZE);
+				read_size = SocketReceive(servlocopcmd, BUFF_SIZE);
+				if(read_size <0)
+				{
+					printf("\nReceive failed");
+					fclose(fp);
+					return;
+				}
+				sleep(3);
+				fprintf(fp,"%s",servlocopcmd);
+				printf("Write  in file  : %s  \n\n",servlocopcmd);
+
+
+			}while(!feof(fp));
+
+			fclose(fp);
+		}
+
+	}
+}
+
 void serve_get(char incmdparts[M][N], int cmdcnt)
 {
-
-	struct dirent **namelist;
-	int n=0;
 	if(cmdcnt < 2) {
 		printf("Argument of get not passed\n");
 	} else if (cmdcnt == 2) {
 		char buff[500];
 		memset(buff,0,sizeof(buff));
 
-		FILE *fp = fopen(incmdparts[1],"r+");
+		FILE *fp = fopen(incmdparts[1],"r");
 		if ( fp == NULL )
 		{
-			printf( "\n file failed to open." ) ;
+			printf( "\n file failed to open.\n" ) ;
 		}
 		else
 		{
 			do{
 
-				memset(servlocopcmd,0,100000);
-				read(fp,servlocopcmd,100000);
-				if( send(sock, servlocopcmd, strlen(servlocopcmd), 0) < 0)
-				{
-					perror("Send failed");
-				}
-				memset(servlocopcmd,0,100000);
+				memset(servlocopcmd,'\0',BUFF_SIZE);
+				fgets(servlocopcmd,BUFF_SIZE,fp);
 
-			}while(servlocopcmd[0]!=NULL);
-			printf("transmitted to server : %s\n\n",servlocopcmd);
+				if(SocketSend(servlocopcmd, strlen(servlocopcmd)) < 0)
+				{
+					perror("\nSend failed");
+				}
+
+				printf("transmitted to server : %s\n\n",servlocopcmd);
+				sleep(1);
+			}while(!feof(fp));
+
 			fclose(fp);
 		}
 
@@ -184,17 +267,19 @@ int main(int argc, char *argv[])
 			"get",
 			"close"};
 
+	printf("Listening:: Waiting for incoming connections...\n");
+	clientLen = sizeof(struct sockaddr_in);
+	sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen); //accept connection from an incoming client
+	if (sock < 0)
+	{
+		perror("Connection Refused/Failed");
+		return 1;
+	}
+	printf("Connection Accepted\n");
+
 	while(1)
 	{
-		printf("Listening:: Waiting for incoming connections...\n");
-		clientLen = sizeof(struct sockaddr_in);
-		sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen); //accept connection from an incoming client
-		if (sock < 0)
-		{
-			perror("Connection Refused/Failed");
-			return 1;
-		}
-		printf("Connection Accepted\n");
+
 		memset(client_message, '\0', sizeof(client_message));
 
 		//Receive a reply from the client
@@ -233,52 +318,6 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		/*
-        if(strcmp("ls",client_message)==0)
-        {
-            memset(ipcmd,0,100);
-            sprintf(ipcmd,"%s","ls");
-            RunCmd();
-            strcpy(message,opcmd);
-            memset(opcmd,0,10000);
-            // Send data
-            if( send(sock, message, strlen(message), 0) < 0)
-            {
-                printf("Send failed");
-                return 1;
-            }
-        } 
-        else if(strcmp("cd",client_message)==0)
-        {
-            memset(ipcmd,0,100);
-            sprintf(ipcmd,"%s","cd");
-            RunCmd();
-            strcpy(message,opcmd);
-            memset(opcmd,0,10000);
-            // Send data
-            if( send(sock, message, strlen(message), 0) < 0)
-            {
-                printf("Send failed");
-                return 1;
-            }
-        } 
-        else if(strcmp("put",client_message)==0)
-        {
-            // separate put and file name
-            // open file, if file not present create file
-            //recieve data from client and write to file
-        } 
-        else if(strcmp("get",client_message)==0)
-        {
-            // separate put and file name
-            // open file, if file not present send error msg to client
-            // send data from server to client to write in a file
-        } else
-        {
-            strcpy(message,"Invalid cmd mps !");
-        }
-
-		 */
 
 		switch(cmdfound){
 
@@ -301,6 +340,7 @@ int main(int argc, char *argv[])
 		case 3:
 			//put
 			// send file to server
+			serve_put(incmdparts,count);
 			break;
 		case 4:
 			//get
