@@ -10,6 +10,7 @@
 
 #define M 100
 #define N 100
+#define BUFF_SIZE 1500
 
 
 
@@ -17,60 +18,60 @@ extern void RunCmd();
 
 extern char ipcmd[100];
 extern char opcmd[10000];
-extern int status;
+extern int  status;
 char BUF[1000];
 //Create a Socket for server communication
 short SocketCreate(void)
 {
-    short hSocket;
-    printf("Create the socket\n");
-    hSocket = socket(AF_INET, SOCK_STREAM, 0);
-    return hSocket;
+	short hSocket;
+	printf("Create the socket\n");
+	hSocket = socket(AF_INET, SOCK_STREAM, 0);
+	return hSocket;
 }
 //try to connect with server
 int SocketConnect(int hSocket)
 {
-    int iRetval=-1;
-    int ServerPort = 90190;
-    struct sockaddr_in remote= {0};
-    remote.sin_addr.s_addr = inet_addr("127.0.0.1"); //Local Host
-    remote.sin_family = AF_INET;
-    remote.sin_port = htons(ServerPort);
-    iRetval = connect(hSocket,(struct sockaddr *)&remote,sizeof(struct sockaddr_in));
-    return iRetval;
+	int iRetval=-1;
+	int ServerPort = 90190;
+	struct sockaddr_in remote= {0};
+	remote.sin_addr.s_addr = inet_addr("127.0.0.1"); //Local Host
+	remote.sin_family = AF_INET;
+	remote.sin_port = htons(ServerPort);
+	iRetval = connect(hSocket,(struct sockaddr *)&remote,sizeof(struct sockaddr_in));
+	return iRetval;
 }
 // Send the data to the server and set the timeout of 20 seconds
 int SocketSend(int hSocket,char* Rqst,short lenRqst)
 {
-    int shortRetval = -1;
-    struct timeval tv;
-    tv.tv_sec = 20;  /* 20 Secs Timeout */
-    tv.tv_usec = 0;
-    if(setsockopt(hSocket,SOL_SOCKET,SO_SNDTIMEO,(char *)&tv,sizeof(tv)) < 0)
-    {
-        printf("Time Out\n");
-        return -1;
-    }
-    shortRetval = send(hSocket, Rqst, lenRqst, 0);
-    return shortRetval;
+	int shortRetval = -1;
+	struct timeval tv;
+	tv.tv_sec = 20;  /* 20 Secs Timeout */
+	tv.tv_usec = 0;
+	if(setsockopt(hSocket,SOL_SOCKET,SO_SNDTIMEO,(char *)&tv,sizeof(tv)) < 0)
+	{
+		perror("Time Out\n");
+		return -1;
+	}
+	shortRetval = send(hSocket, Rqst, lenRqst, 0);
+	return shortRetval;
 }
 //receive the data from the server
 int SocketReceive(int hSocket,char* Rsp,short RvcSize)
 {
-    int shortRetval = -1;
-    struct timeval tv;
-    tv.tv_sec = 20;  /* 20 Secs Timeout */
-    tv.tv_usec = 0;
-    if(setsockopt(hSocket, SOL_SOCKET, SO_RCVTIMEO,(char *)&tv,sizeof(tv)) < 0)
-    {
-        printf("Time Out\n");
-        return -1;
-    }
-    shortRetval = recv(hSocket, Rsp, RvcSize, 0);
-    //printf("Response %s\n",Rsp);
-    return shortRetval;
+	int shortRetval = -1;
+	struct timeval tv;
+	tv.tv_sec = 20;  /* 20 Secs Timeout */
+	tv.tv_usec = 0;
+	if(setsockopt(hSocket, SOL_SOCKET, SO_RCVTIMEO,(char *)&tv,sizeof(tv)) < 0)
+	{
+		perror("Time Out\n");
+		return -1;
+	}
+	shortRetval = recv(hSocket, Rsp, RvcSize, 0);
+	//printf("Response %s\n",Rsp);
+	return shortRetval;
 }
-//-------
+
 
 int hSocket, read_size;
 
@@ -78,57 +79,67 @@ int ftpclientconnecttoserver(int argc, char *argv[])
 {
 
 	struct sockaddr_in server;
-    //Create socket
-    hSocket = SocketCreate();
-    if(hSocket == -1)
-    {
-        printf("Could not create socket\n");
-        return 1;
-    }
-    printf("Socket is created\n");
-    //Connect to remote server
-    if (SocketConnect(hSocket) != 0)
-    {
-        perror("connect failed.\n");
-        return -1;
-    }
-    printf("Successfully conected with server\n");
-    
-    return 0;
+	hSocket = SocketCreate();
+	if(hSocket == -1)
+	{
+		perror("Socket Creation Failed\n");
+		return 1;
+	}
+	printf("Socket Created\n");
+
+	if (SocketConnect(hSocket) != 0)  //Connect to remote server
+	{
+		perror("Connection Failed.\n");
+		return -1;
+	}
+	printf("Connection Established with Server Successfully\n");
+
+	return 0;
 
 }
- // File transfer
+// File transfer
 void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 {
-    char SendToServer[100] = {0};
-    int size= 100000;
-    char server_reply[size];
-    bzero(server_reply, size);
-	//gets(SendToServer);
-    // receiving a file from the server
-    if(strcmp("get",incmdparts[0])==0){
-    	//Send data to the server
-		SocketSend(hSocket, incmd, strlen(incmd));
-		//Received the data from the server
-		FILE *fp = fopen(incmdparts[1],"w+");
-		if ( fp == NULL )
-		    {
-		        printf( "\n file failed to open." ) ;
-		    }
-		else
-			{do{
-			memset(server_reply,0,size);
-			read_size = SocketReceive(hSocket, server_reply, size);
-			//fputs(server_reply,fp);
-			write(fp, server_reply, size);
+	char SendToServer[BUFF_SIZE] = {0};
 
-		}while(server_reply[0]!=NULL);
+	puts(incmdparts[1]);
+	int size= 100000;
+	char server_reply[size];
+	bzero(server_reply, size);
+	//gets(SendToServer);
+
+
+	if(!strcmp("get",incmdparts[0])) // receiving a file from the server
+	{
+
+		printf(incmd);
+
+		puts("\n");
+		SocketSend(hSocket, incmd, BUFF_SIZE); //Send data to the server
+
+		FILE *fp = fopen(incmdparts[1],"w+");  //Received the data from the server
+		if ( fp == NULL )
+		{
+			perror( "\n file failed to open." ) ;
+		}
+		else
+		{
+			do
+			{
+				memset(server_reply,0,size);
+				read_size = SocketReceive(hSocket, server_reply, size);
+				fputs(server_reply,fp);
+				write(fp, server_reply, size);
+
+			}while(server_reply[0]!=NULL);
+
 			printf("Server Response : %s\n\n",server_reply);
-		fclose(fp);
-			}
-    } else if(strcmp("put",incmdparts[0])==0){ // uploading file to the server
-    	//Send data to the server
-		SocketSend(hSocket, incmd, strlen(incmd));
+			fclose(fp);
+		}
+	}
+	else if(!strcmp("put",incmdparts[0])) // uploading file to the server
+	{
+		SocketSend(hSocket, incmd, strlen(incmd)); //Send data to the server
 		//Received the data from the server
 		FILE *fp = fopen(incmdparts[1],"r+");
 		do{
@@ -141,25 +152,25 @@ void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 		printf("transmitted to server : %s\n\n",server_reply);
 		fclose(fp);
 
-    }else{
-    	//Send data to the server
-        SocketSend(hSocket, incmd, strlen(incmd));
-        //Received the data from the server
-        read_size = SocketReceive(hSocket, server_reply, size);
-        printf("Server Response : %s\n\n",server_reply);
-    }
-    return;
+	}else{
+		//Send data to the server
+		SocketSend(hSocket, incmd, strlen(incmd));
+		//Received the data from the server
+		read_size = SocketReceive(hSocket, server_reply, size);
+		printf("Server Response : %s\n\n",server_reply);
+	}
+	return;
 }
 
 int ftpservedisconnect()
 {
-        close(hSocket);
-        shutdown(hSocket,0);
-        shutdown(hSocket,1);
-        shutdown(hSocket,2);
+	close(hSocket);
+	shutdown(hSocket,0);
+	shutdown(hSocket,1);
+	shutdown(hSocket,2);
 
 
-    return 0;
+	return 0;
 }
 
 void callpwd()
@@ -228,7 +239,7 @@ int mymain(int argc, char *argv[]) {
 
 	ftpclientconnecttoserver(argc,argv);
 	printf("\033[2J\033[0;0H");
-	printf("--------------------- DUMMY SHELL OS ELL 783 GROUP 6----------------------\n");
+	printf("--------------------- FTP CLIENT SHELL OS ELL 783 GROUP 6----------------------\n");
 
 	int maxcmds=9;
 	char * cmdlist[]={
@@ -246,12 +257,14 @@ int mymain(int argc, char *argv[]) {
 
 	while(1){
 		char incmd[1000];
+		char incmd1[1000];
 		char incmdparts[M][N];
 		memset(incmd,0,sizeof(incmd));
 		memset(incmdparts,0,sizeof(incmdparts));
 		printf("\n$");
 		fflush(stdin);
 		gets(incmd);
+		memcpy(incmd1,incmd,1000);
 		char * token=NULL, *saveptr1=NULL, *str1=incmd;
 		int count=0;
 		for (count = 0 ; ; count++, str1 = NULL) {
@@ -271,20 +284,15 @@ int mymain(int argc, char *argv[]) {
 				break;
 			}
 		}
-/////
+		/////
 		switch(cmdfound){
 
 		case 0:
-			// send ls command to server
-			ftpclientsendtoserver( incmd ,incmdparts);
-			break;
 		case 1:
-			// send cd command to server
-			ftpclientsendtoserver(incmd, incmdparts);
-			break;
 		case 2:
-			//send chmod command to server
-			ftpclientsendtoserver(incmd,incmdparts);
+		case 6:
+		case 7:
+			ftpclientsendtoserver( incmd ,incmdparts);
 			break;
 		case 3:
 			call_lls(incmdparts,count);
@@ -300,17 +308,7 @@ int mymain(int argc, char *argv[]) {
 			if (chmod (incmdparts[3],i) < 0)
 				printf("error in chmod");
 		}
-			break;
-		case 6:
-			//put
-			// send file to server
-			ftpclientsendtoserver(incmd,incmdparts);
-			break;
-		case 7:
-			//get
-			// get file from server
-			ftpclientsendtoserver(incmd,incmdparts);
-			break;
+		break;
 		case 8:
 			//close
 			// disconnect from the server

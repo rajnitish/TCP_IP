@@ -16,32 +16,29 @@ extern int status;
 #define N 100
 
 
-//-----
+#define BUFF_SIZE 1500
 
 int  sock;
-short SocketCreate(void)
+short CreateSocket(void)
 {
-    short hSocket;
-    printf("Create the socket\n");
-    hSocket = socket(AF_INET, SOCK_STREAM, 0);
-    return hSocket;
+	short hSocket;
+	printf("Socket Create Initation\n");
+	hSocket = socket(AF_INET, SOCK_STREAM, 0);
+	return hSocket;
 }
-int BindCreatedSocket(int hSocket)
+int BindSocket(int hSocket)
 {
-    int iRetval=-1;
-    int ClientPort = 90190;
-    struct sockaddr_in  remote= {0};
-    /* Internet address family */
-    remote.sin_family = AF_INET;
-    /* Any incoming interface */
-    remote.sin_addr.s_addr = htonl(INADDR_ANY);
-    remote.sin_port = htons(ClientPort); /* Local port */
-    iRetval = bind(hSocket,(struct sockaddr *)&remote,sizeof(remote));
-    return iRetval;
+	int iRetval					=-1;
+	int ClientPort 				= 90190;
+	struct sockaddr_in  remote	= {0};
+
+	remote.sin_family 			= AF_INET; 					//Internet address family
+	remote.sin_addr.s_addr 		= htonl(INADDR_ANY);   		// Any incoming interfaces
+	remote.sin_port 			= htons(ClientPort); 		// Local port
+
+	iRetval = bind(hSocket,(struct sockaddr *)&remote,sizeof(remote));
+	return iRetval;
 }
-
-
-//-------
 
 char servlocopcmd[100000];
 
@@ -107,42 +104,78 @@ void call_ls(char incmdparts[M][N], int cmdcnt)
 	// send data to client
 	if( send(sock, servlocopcmd, strlen(servlocopcmd), 0) < 0)
 	{
-		printf("Send failed");
+		perror("Send failed");
 	}
 	memset(servlocopcmd,0,100000);
 	return;
+}
+
+void serve_get(char incmdparts[M][N], int cmdcnt)
+{
+
+	struct dirent **namelist;
+	int n=0;
+	if(cmdcnt < 2) {
+		printf("Argument of get not passed\n");
+	} else if (cmdcnt == 2) {
+		char buff[500];
+		memset(buff,0,sizeof(buff));
+
+		FILE *fp = fopen(incmdparts[1],"r+");
+		if ( fp == NULL )
+		{
+			printf( "\n file failed to open." ) ;
+		}
+		else
+		{
+			do{
+
+				memset(servlocopcmd,0,100000);
+				read(fp,servlocopcmd,100000);
+				if( send(sock, servlocopcmd, strlen(servlocopcmd), 0) < 0)
+				{
+					perror("Send failed");
+				}
+				memset(servlocopcmd,0,100000);
+
+			}while(servlocopcmd[0]!=NULL);
+			printf("transmitted to server : %s\n\n",servlocopcmd);
+			fclose(fp);
+		}
+
+
+	}
+
+
 }
 
 
 //------
 int main(int argc, char *argv[])
 {
-    int socket_desc, clientLen, read_size;
-    struct sockaddr_in server, client;
-    char client_message[200]= {0};
-    char message[100] = {0};
-    const char *pMessage = "hello";
-    //Create socket
-    socket_desc = SocketCreate();
-    if (socket_desc == -1)
-    {
-        printf("Could not create socket");
-        return 1;
-    }
-    printf("Socket created\n");
-    //Bind
-    if( BindCreatedSocket(socket_desc) < 0)
-    {
-        //print the error message
-        perror("bind failed.");
-        return 1;
-    }
-    printf("bind done\n");
-    //Listen
-    listen(socket_desc, 3);
-    //Accept and incoming connection
+	int socket_desc, clientLen, read_size;
+	struct sockaddr_in server, client;
+	char client_message[BUFF_SIZE]= {0};
+	const char *pMessage = "hello";
 
-    int maxcmds=6;
+	socket_desc = CreateSocket();  //Create socket
+	if (socket_desc == -1)
+	{
+		perror("Socket Creation Failed");
+		return 1;
+	}
+	printf("Socket Created\n");
+
+	if( BindSocket(socket_desc) < 0)
+	{
+		perror("Binding Failed");
+		return 1;
+	}
+	printf("Socket Binding Done\n");
+	listen(socket_desc, 3); // listen
+	//Accept and incoming connection
+
+	int maxcmds=6;
 	char * cmdlist[]={
 			"ls",
 			"cd",
@@ -151,29 +184,28 @@ int main(int argc, char *argv[])
 			"get",
 			"close"};
 
-    while(1)
-    {
-        printf("Waiting for incoming connections...\n");
-        clientLen = sizeof(struct sockaddr_in);
-        //accept connection from an incoming client
-        sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen);
-        if (sock < 0)
-        {
-            perror("accept failed");
-            return 1;
-        }
-        printf("Connection accepted\n");
-        memset(client_message, '\0', sizeof client_message);
-        memset(message, '\0', sizeof message);
-        //Receive a reply from the client
-        if( recv(sock, client_message, 200, 0) < 0)
-        {
-            printf("recv failed");
-            break;
-        }
-        printf("Client reply : %s recieved\n",client_message);
+	while(1)
+	{
+		printf("Listening:: Waiting for incoming connections...\n");
+		clientLen = sizeof(struct sockaddr_in);
+		sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen); //accept connection from an incoming client
+		if (sock < 0)
+		{
+			perror("Connection Refused/Failed");
+			return 1;
+		}
+		printf("Connection Accepted\n");
+		memset(client_message, '\0', sizeof(client_message));
 
-        char incmd[1000];
+		//Receive a reply from the client
+		if( recv(sock, client_message, BUFF_SIZE, 0) < 0)
+		{
+			printf("recv failed");
+			break;
+		}
+		printf("Client reply :: %s recieved\n",client_message);
+
+		char incmd[1000];
 		char incmdparts[M][N];
 		memset(incmd,0,sizeof(incmd));
 		memset(incmdparts,0,sizeof(incmdparts));
@@ -190,6 +222,7 @@ int main(int argc, char *argv[])
 			}
 			strcpy(incmdparts[count],token);
 		}
+
 
 
 		int cmdfound=-1;
@@ -244,8 +277,8 @@ int main(int argc, char *argv[])
         {
             strcpy(message,"Invalid cmd mps !");
         }
-        
-        */
+
+		 */
 
 		switch(cmdfound){
 
@@ -255,26 +288,29 @@ int main(int argc, char *argv[])
 		case 1:
 			call_cd(incmdparts);
 			break;
+
 		case 2:
 			//call_lchmod
-			{
+		{
 			int i;
 			i = atoi(incmdparts[1]);
 			if (chmod (incmdparts[3],i) < 0)
 				printf("error in chmod");
-			}
-			break;
-		case 4:
+		}
+		break;
+		case 3:
 			//put
 			// send file to server
 			break;
-		case 5:
+		case 4:
 			//get
 			// get file from server
+			serve_get(incmdparts,count);
 			break;
-		case 6:
+		case 5:
 			//close
 			// disconnect from the server
+			close(sock);
 			break;
 		default:
 		{
@@ -290,11 +326,11 @@ int main(int argc, char *argv[])
 			}
 		}
 		}
-        
-        close(sock);
-        sleep(1);
-    }
-    return 0;
+
+
+		sleep(1);
+	}
+	return 0;
 }
 
 
