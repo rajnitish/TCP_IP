@@ -157,6 +157,7 @@ void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 		//Send data to the server
 		SocketSend(hSocket, incmd, strlen(incmd));
 		//Received the data from the server
+		sleep(1);
 		read_size = SocketReceive(hSocket, server_reply, BUFF_SIZE);
 		printf("Server Response : %s\n\n",server_reply);
 	}
@@ -232,6 +233,40 @@ void call_lls(char incmdparts[M][N], int cmdcnt)
 
 	return;
 }
+void call_lchmod(char incmdparts[M][N], int cmdcnt)
+{
+
+	if(cmdcnt < 3) {
+		printf("Correct no. of argument not passed\n");
+	}
+	else if (cmdcnt == 3)
+	{
+
+
+		FILE *fp = fopen(incmdparts[2],"r");
+		if(fp == NULL)
+		{
+			printf("\n File/Directory doesn't exist\n");
+		}
+		else
+		{
+			int i = strtol(incmdparts[1],0,8);
+			int ret = chmod(incmdparts[2],i);
+			if (ret == 0)
+			{
+				printf("\n Permission changed successfully!!!\n");
+
+			}
+			else
+				perror(ret);
+
+			fclose(fp);
+		}
+
+	}
+
+}
+
 
 
 
@@ -302,13 +337,7 @@ int mymain(int argc, char *argv[]) {
 			call_lcd(incmdparts);
 			break;
 		case 5:
-			//call_lchmod
-		{
-			int i;
-			i = atoi(incmdparts[1]);
-			if (chmod (incmdparts[3],i) < 0)
-				printf("Error in chmod");
-		}
+			call_lchmod(incmdparts,count);
 		break;
 		case 8:
 			//close

@@ -1,1 +1,1 @@
-1. Once put has been started.. Failed in writing happend after succesfully writing. Needs to revisit. Known issue.
+ls -l or lls -l ...Can we do it? At least with one flag

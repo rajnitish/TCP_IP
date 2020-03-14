@@ -6,6 +6,8 @@
 #include<arpa/inet.h>
 #include<unistd.h>
 #include<dirent.h>
+#include<sys/stat.h>
+
 extern void RunCmd();
 
 extern char ipcmd[100];
@@ -175,18 +177,12 @@ void serve_put(char incmdparts[M][N], int cmdcnt)
 
 				memset(servlocopcmd,'\0',BUFF_SIZE);
 				read_size = SocketReceive(servlocopcmd, BUFF_SIZE);
-				if(read_size <0)
-				{
-					printf("\nReceive failed");
-					fclose(fp);
-					return;
-				}
-				sleep(3);
+				sleep(1);
 				fprintf(fp,"%s",servlocopcmd);
 				printf("Write  in file  : %s  \n\n",servlocopcmd);
 
 
-			}while(!feof(fp));
+			}while(read_size != -1);
 
 			fclose(fp);
 		}
@@ -229,6 +225,50 @@ void serve_get(char incmdparts[M][N], int cmdcnt)
 
 	}
 
+
+}
+
+void serve_chmod(char incmdparts[M][N], int cmdcnt)
+{
+
+	memset(servlocopcmd,'\0',BUFF_SIZE);
+
+	if(cmdcnt < 3) {
+		printf("Correct no. of argument not passed\n");
+		memcpy(servlocopcmd,"Correct no. of argument not passed\0",BUFF_SIZE);
+	}
+	else if (cmdcnt == 3)
+	{
+
+
+		FILE *fp = fopen(incmdparts[2],"r");
+		if(fp == NULL)
+		{
+			printf("\n File/Directory doesn't exist\n");
+			memcpy(servlocopcmd,"File/Directory doesn't exist\0",BUFF_SIZE);
+		}
+		else
+		{
+			int i = strtol(incmdparts[1],0,8);
+			int ret = chmod(incmdparts[2],i);
+			if (ret == 0)
+			{
+				printf("\n Permission changed!!!\n");
+
+				memcpy(servlocopcmd," Permission changed successfully!!!\0",BUFF_SIZE);
+			}
+			else
+				perror(ret);
+
+			fclose(fp);
+		}
+
+	}
+	sleep(1);
+	if(SocketSend(servlocopcmd, strlen(servlocopcmd)) < 0)
+	{
+		perror("\nSend failed");
+	}
 
 }
 
@@ -284,91 +324,85 @@ int main(int argc, char *argv[])
 
 		//Receive a reply from the client
 		if( recv(sock, client_message, BUFF_SIZE, 0) < 0)
+		{}
+		else
 		{
-			printf("recv failed");
-			break;
-		}
-		printf("Client reply :: %s recieved\n",client_message);
+			printf("Client reply :: %s recieved\n",client_message);
 
-		char incmd[1000];
-		char incmdparts[M][N];
-		memset(incmd,0,sizeof(incmd));
-		memset(incmdparts,0,sizeof(incmdparts));
-		sprintf(incmd,"%s",client_message);
-		printf("\n$");
+			char incmd[1000];
+			char incmdparts[M][N];
+			memset(incmd,0,sizeof(incmd));
+			memset(incmdparts,0,sizeof(incmdparts));
+			sprintf(incmd,"%s",client_message);
+			printf("\n$");
 
-		char * token=NULL, *saveptr1=NULL, *str1=incmd;
-		int count=0;
-		for (count = 0 ; ; count++, str1 = NULL) {
-			token = strtok_r(str1,(char *)" ", &saveptr1);
-			if (token == NULL){
+			char * token=NULL, *saveptr1=NULL, *str1=incmd;
+			int count=0;
+			for (count = 0 ; ; count++, str1 = NULL) {
+				token = strtok_r(str1,(char *)" ", &saveptr1);
+				if (token == NULL){
 
+					break;
+				}
+				strcpy(incmdparts[count],token);
+			}
+
+
+
+			int cmdfound=-1;
+			for(int i=0;i<maxcmds;i++){
+				if(strcmp(incmdparts[0],cmdlist[i])==0){
+					cmdfound=i;
+					break;
+				}
+			}
+
+
+			switch(cmdfound){
+
+			case 0:
+				call_ls(incmdparts,count);
 				break;
-			}
-			strcpy(incmdparts[count],token);
-		}
-
-
-
-		int cmdfound=-1;
-		for(int i=0;i<maxcmds;i++){
-			if(strcmp(incmdparts[0],cmdlist[i])==0){
-				cmdfound=i;
+			case 1:
+				call_cd(incmdparts);
 				break;
+
+			case 2:
+				serve_chmod(incmdparts,count);
+				break;
+			case 3:
+				//put
+				// send file to server
+				serve_put(incmdparts,count);
+				break;
+			case 4:
+				//get
+				// get file from server
+				serve_get(incmdparts,count);
+				break;
+			case 5:
+				//close
+				// disconnect from the server
+				close(sock);
+				break;
+			default:
+			{
+				int ret = 0;
+				char buffer[1000];
+				memset(buffer,0,sizeof(buffer));
+				sprintf(buffer,"/bin/%s",incmd);
+				ret = fork();
+				if(ret ==0){
+					execlp(buffer,buffer,NULL);
+				}else{
+					wait(NULL);
+				}
 			}
-		}
-
-
-		switch(cmdfound){
-
-		case 0:
-			call_ls(incmdparts,count);
-			break;
-		case 1:
-			call_cd(incmdparts);
-			break;
-
-		case 2:
-			//call_lchmod
-		{
-			int i;
-			i = atoi(incmdparts[1]);
-			if (chmod (incmdparts[3],i) < 0)
-				printf("error in chmod");
-		}
-		break;
-		case 3:
-			//put
-			// send file to server
-			serve_put(incmdparts,count);
-			break;
-		case 4:
-			//get
-			// get file from server
-			serve_get(incmdparts,count);
-			break;
-		case 5:
-			//close
-			// disconnect from the server
-			close(sock);
-			break;
-		default:
-		{
-			int ret = 0;
-			char buffer[1000];
-			memset(buffer,0,sizeof(buffer));
-			sprintf(buffer,"/bin/%s",incmd);
-			ret = fork();
-			if(ret ==0){
-				execlp(buffer,buffer,NULL);
-			}else{
-				wait(NULL);
 			}
-		}
-		}
 
 
-		sleep(1);
+			sleep(1);
+		}
 	}
 	return 0;
 }
