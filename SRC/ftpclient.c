@@ -193,6 +193,7 @@ void call_lcd(char incmdparts[M][N],int cmdcnt)
 		printf("No cmd lcd\n");
 	} else if (cmdcnt == 1) {
 
+
 		const char *homedir;
 		if ((homedir = getenv("HOME")) == NULL)
 		{

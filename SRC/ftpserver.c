@@ -107,6 +107,7 @@ void call_cd(char incmdparts[M][N],int cmdcnt)
 		if(ret == -1){
 			printf("\nerror in changedir");
 		}
+
 		/*
 
 		char hDir[5000] = "";
