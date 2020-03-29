@@ -7,6 +7,7 @@
 #include<unistd.h>
 #include<dirent.h>
 #include<sys/stat.h>
+#include<pwd.h>
 
 extern void RunCmd();
 
@@ -85,25 +86,122 @@ void callpwd()
 
 	return;
 }
-void call_cd(char incmdparts[M][N])
+void call_cd(char incmdparts[M][N],int cmdcnt)
 {
-	if(strcmp(incmdparts[1], NULL) == 0){
 
-		int ret = chdir("$(HOME)");
+	memset(servlocopcmd,0,100000);
+	char successful = 0;
+
+	if(cmdcnt < 1) {
+		printf("No cmd lcd\n");
+	} else if (cmdcnt == 1) {
+
+		puts("\nSERVER SIDE ONLY CD \n");
+		const char *homedir;
+		if ((homedir = getenv("HOME")) == NULL)
+		{
+			homedir = getpwuid(getuid())->pw_dir;
+		}
+		int ret = chdir(homedir);
+
 		if(ret == -1){
 			printf("\nerror in changedir");
 		}
-	}else if(strcmp(incmdparts[1], "..") == 0){
-		//char buffer[1000];
-		//memset(buffer,0,1000);
-		//sprintf("%s/%s",incmdparts[1],incmdparts[1])
-	} else{
+		/*
 
-		int ret = chdir(incmdparts[1]);
+		char hDir[5000] = "";
+		memset(hDir,0,5000);
+		char *hD;
+
+
+		//perror()
+		if((hD = getenv("HOME")) != NULL )
+		{
+			puts("\nWe Are Inside ");
+
+		   strncpy(hDir, hD,5000-1);
+		}
+		else
+		{
+
+			puts("\nHIIIIIIIIIIIIIIIII \n");
+			hD = getpwuid(getuid())->pw_dir;
+
+			   strncpy(hDir, hD,5000-1);
+		}
+
+		int ret = chdir(hDir);
+
 		if(ret == -1){
-			printf("\nerror in changedir");
+			printf("\nerror in changedir\n");
+		}
+*/		else
+		{
+			successful = 1;
+		}
+
+	}
+	else
+	{
+		if(strcmp(incmdparts[1], "..") == 0)
+		{
+			char buff[500];
+			memset(buff,0,sizeof(buff));
+			getcwd(buff,sizeof(buff));
+
+			for(int i = strlen(buff)-1 ; i>0 ;--i)
+			{
+				if(buff[i] == '\/')
+				{
+					buff[i] = '\0';
+					break;
+				}
+			}
+
+			int ret = chdir(buff);
+			if(ret == -1){
+				printf("\nError in changedir");
+			}
+			else
+			{
+				successful = 1;
+
+			}
+
+
+		}
+		else
+		{
+
+			int ret = chdir(incmdparts[1]);
+			if(ret == -1){
+				printf("\nerror in changedir");
+			}
+			else
+			{
+				successful = 1;
+			}
+
+		}
+
+	}
+
+	if(successful)
+	{
+
+		char newBuff[500];
+		getcwd(newBuff,500);
+		strcat(servlocopcmd,"\nDirectory Changed at server Side :: ");
+		strcat(servlocopcmd,newBuff);
+
+		if( send(sock, servlocopcmd, strlen(servlocopcmd), 0) < 0)
+		{
+			perror("Send failed");
 		}
 	}
+
+	sleep(1);
+	memset(servlocopcmd,0,100000);
 
 	return;
 }
@@ -329,13 +427,15 @@ int main(int argc, char *argv[])
 		{
 			printf("Client reply :: %s recieved\n",client_message);
 
-			char incmd[1000];
+			char incmd[1000],incmd1[1000];
 			char incmdparts[M][N];
 			memset(incmd,0,sizeof(incmd));
 			memset(incmdparts,0,sizeof(incmdparts));
 			sprintf(incmd,"%s",client_message);
 			printf("\n$");
 
+
+			memcpy(incmd1,incmd,1000);
 			char * token=NULL, *saveptr1=NULL, *str1=incmd;
 			int count=0;
 			for (count = 0 ; ; count++, str1 = NULL) {
@@ -364,7 +464,7 @@ int main(int argc, char *argv[])
 				call_ls(incmdparts,count);
 				break;
 			case 1:
-				call_cd(incmdparts);
+				call_cd(incmd1,count);
 				break;
 
 			case 2:

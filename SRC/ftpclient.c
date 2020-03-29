@@ -7,6 +7,7 @@
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include<unistd.h>
+#include<pwd.h>
 
 #define M 100
 #define N 100
@@ -159,6 +160,7 @@ void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 		//Received the data from the server
 		sleep(1);
 		read_size = SocketReceive(hSocket, server_reply, BUFF_SIZE);
+		sleep(1);
 		printf("Server Response : %s\n\n",server_reply);
 	}
 	return;
@@ -184,23 +186,59 @@ void callpwd()
 
 	return;
 }
-void call_lcd(char incmdparts[M][N])
+void call_lcd(char incmdparts[M][N],int cmdcnt)
 {
-	if(strcmp(incmdparts[1], NULL) == 0){
 
-		int ret = chdir("$(HOME)");
+	if(cmdcnt < 1) {
+		printf("No cmd lcd\n");
+	} else if (cmdcnt == 1) {
+
+		const char *homedir;
+		if ((homedir = getenv("HOME")) == NULL)
+		{
+			homedir = getpwuid(getuid())->pw_dir;
+		}
+		int ret = chdir(homedir);
+
 		if(ret == -1){
 			printf("\nerror in changedir");
 		}
-	}else if(strcmp(incmdparts[1], "..") == 0){
-		//char buffer[1000];
-		//memset(buffer,0,1000);
-		//sprintf("%s/%s",incmdparts[1],incmdparts[1])
-	} else{
+	}
+	else
+	{
+		if(strcmp(incmdparts[1], "..") == 0)
+		{
+			char buff[500];
+			memset(buff,0,sizeof(buff));
+			getcwd(buff,sizeof(buff));
 
-		int ret = chdir(incmdparts[1]);
-		if(ret == -1){
-			printf("\nerror in changedir");
+			for(int i = strlen(buff)-1 ; i>0 ;--i)
+			{
+				if(buff[i] == '\/')
+				{
+					buff[i] = '\0';
+					break;
+				}
+			}
+
+			int ret = chdir(buff);
+			if(ret == -1){
+				printf("\nError in changedir");
+			}
+
+
+			puts("\nDirectory Changed to ");
+			puts(buff);
+
+		}
+		else
+		{
+
+			int ret = chdir(incmdparts[1]);
+			if(ret == -1){
+				printf("\nerror in changedir");
+			}
+
 		}
 	}
 
@@ -334,11 +372,11 @@ int mymain(int argc, char *argv[]) {
 			call_lls(incmdparts,count);
 			break;
 		case 4:
-			call_lcd(incmdparts);
+			call_lcd(incmdparts,count);
 			break;
 		case 5:
 			call_lchmod(incmdparts,count);
-		break;
+			break;
 		case 8:
 			//close
 			// disconnect from the server
