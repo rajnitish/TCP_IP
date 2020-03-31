@@ -205,6 +205,7 @@ void call_lcd(char incmdparts[M][N],int cmdcnt)
 			printf("\nerror in changedir");
 		}
 	}
+
 	else
 	{
 		if(strcmp(incmdparts[1], "..") == 0)

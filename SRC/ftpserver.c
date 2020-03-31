@@ -96,47 +96,55 @@ void call_cd(char incmdparts[M][N],int cmdcnt)
 		printf("No cmd lcd\n");
 	} else if (cmdcnt == 1) {
 
-		puts("\nSERVER SIDE ONLY CD \n");
+		/*
 		const char *homedir;
 		if ((homedir = getenv("HOME")) == NULL)
 		{
 			homedir = getpwuid(getuid())->pw_dir;
 		}
-		int ret = chdir(homedir);
-
-		if(ret == -1){
-			printf("\nerror in changedir");
-		}
-
-		/*
-
-		char hDir[5000] = "";
-		memset(hDir,0,5000);
-		char *hD;
+		 */
 
 
-		//perror()
-		if((hD = getenv("HOME")) != NULL )
+		char Dir[10000];
+		memset(Dir,0,10000);
+
+		memset(ipcmd,0,100);
+		memset(opcmd,0,10000);
+		sprintf(ipcmd,"echo $HOME");
+		RunCmd();
+
+
+		int j = 0;
+		for(int i = 0 ; i<10000 ;i++)
 		{
-			puts("\nWe Are Inside ");
+			if(opcmd[i] == '\0')
+			{
+				Dir[j] = '\0';
+				break;
+			}
 
-		   strncpy(hDir, hD,5000-1);
+			if(opcmd[i] == '/')
+			{
+				strcat(Dir,"/");
+				j = j + 1;
+
+			}
+			else
+			{
+				Dir[j] = opcmd[i];
+				j++;
+			}
 		}
-		else
-		{
 
-			puts("\nHIIIIIIIIIIIIIIIII \n");
-			hD = getpwuid(getuid())->pw_dir;
 
-			   strncpy(hDir, hD,5000-1);
-		}
-
-		int ret = chdir(hDir);
+		//int ret = chdir(Dir);
+		//puts(Dir);
+		int ret = chdir("/home/nitish");
 
 		if(ret == -1){
 			printf("\nerror in changedir\n");
 		}
-*/		else
+		else
 		{
 			successful = 1;
 		}
@@ -159,9 +167,12 @@ void call_cd(char incmdparts[M][N],int cmdcnt)
 				}
 			}
 
+			puts(" Path changed to ::");
+			puts(buff);
 			int ret = chdir(buff);
 			if(ret == -1){
 				printf("\nError in changedir");
+
 			}
 			else
 			{
@@ -176,7 +187,7 @@ void call_cd(char incmdparts[M][N],int cmdcnt)
 
 			int ret = chdir(incmdparts[1]);
 			if(ret == -1){
-				printf("\nerror in changedir");
+				printf("\nerror in changedir\n");
 			}
 			else
 			{
@@ -465,7 +476,7 @@ int main(int argc, char *argv[])
 				call_ls(incmdparts,count);
 				break;
 			case 1:
-				call_cd(incmd1,count);
+				call_cd(incmdparts,count);
 				break;
 
 			case 2:
@@ -507,5 +518,4 @@ int main(int argc, char *argv[])
 	}
 	return 0;
 }
-
 
