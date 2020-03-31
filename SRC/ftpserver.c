@@ -8,6 +8,7 @@
 #include<dirent.h>
 #include<sys/stat.h>
 #include<pwd.h>
+#include<signal.h>
 
 extern void RunCmd();
 
@@ -96,57 +97,23 @@ void call_cd(char incmdparts[M][N],int cmdcnt)
 		printf("No cmd lcd\n");
 	} else if (cmdcnt == 1) {
 
-		/*
-		const char *homedir;
-		if ((homedir = getenv("HOME")) == NULL)
-		{
-			homedir = getpwuid(getuid())->pw_dir;
-		}
-		 */
-
-
-		char Dir[10000];
-		memset(Dir,0,10000);
-
-		memset(ipcmd,0,100);
-		memset(opcmd,0,10000);
+		memset(ipcmd,0,50);
+		memset(opcmd,0,50);
 		sprintf(ipcmd,"echo $HOME");
 		RunCmd();
+		memcpy(opcmd+strlen(opcmd)-1,"\/\0",2);
+		puts(" Path changed to ::");
+		puts(opcmd);
+		int ret = chdir(opcmd);
 
-
-		int j = 0;
-		for(int i = 0 ; i<10000 ;i++)
+		if(ret == -1)
 		{
-			if(opcmd[i] == '\0')
-			{
-				Dir[j] = '\0';
-				break;
-			}
-
-			if(opcmd[i] == '/')
-			{
-				strcat(Dir,"/");
-				j = j + 1;
-
-			}
-			else
-			{
-				Dir[j] = opcmd[i];
-				j++;
-			}
-		}
-
-
-		//int ret = chdir(Dir);
-		//puts(Dir);
-		int ret = chdir("/home/nitish");
-
-		if(ret == -1){
-			printf("\nerror in changedir\n");
+			printf("\nError in changedir");
 		}
 		else
 		{
 			successful = 1;
+
 		}
 
 	}
@@ -382,6 +349,28 @@ void serve_chmod(char incmdparts[M][N], int cmdcnt)
 
 }
 
+void ClientCount(int flag)
+{
+	int noOfClient;
+
+	memset(ipcmd,0,100);
+	memset(opcmd,0,100);
+	sprintf(ipcmd,"ps -ax | grep CLIENT | wc -l");
+	RunCmd();
+	noOfClient = atoi(opcmd) - 2;
+
+	if(flag)
+	{
+		printf("Client Added !!! The total # of Client currently active is %d\n",noOfClient);
+	}
+	else
+	{
+		noOfClient--;
+		printf("Client Removed !!! The total # of Client currently active is %d\n",noOfClient);
+	}
+
+}
+
 
 //------
 int main(int argc, char *argv[])
@@ -390,6 +379,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in server, client;
 	char client_message[BUFF_SIZE]= {0};
 	const char *pMessage = "hello";
+
 
 	socket_desc = CreateSocket();  //Create socket
 	if (socket_desc == -1)
@@ -419,103 +409,136 @@ int main(int argc, char *argv[])
 
 	printf("Listening:: Waiting for incoming connections...\n");
 	clientLen = sizeof(struct sockaddr_in);
-	sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen); //accept connection from an incoming client
-	if (sock < 0)
+
+	pid_t pid;
+
+	while (1)
 	{
-		perror("Connection Refused/Failed");
-		return 1;
-	}
-	printf("Connection Accepted\n");
+		sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen); //accept connection from an incoming client
+		if (sock < 0)
+		{
+			perror("Connection Refused/Failed");
+			exit(0);
+		}
 
-	while(1)
-	{
+		printf("Connection Accepted\n");
 
-		memset(client_message, '\0', sizeof(client_message));
+		ClientCount(1);
 
-		//Receive a reply from the client
-		if( recv(sock, client_message, BUFF_SIZE, 0) < 0)
-		{}
+		pid = fork();
+
+		if (pid < 0)
+		{
+			perror("Error!! Fork failed");
+			exit(0);
+		}
+		if (pid == 0)
+		{
+
+			while(1)
+			{
+
+				memset(client_message, '\0', sizeof(client_message));
+
+				//Receive a reply from the client
+				if( recv(sock, client_message, BUFF_SIZE, 0) < 0)
+				{
+					perror("Error!! While reading from socket");
+					exit(0);
+				}
+				else
+				{
+
+					printf("Client reply :: %s recieved\n",client_message);
+
+					char incmd[1000],incmd1[1000];
+					char incmdparts[M][N];
+					memset(incmd,0,sizeof(incmd));
+					memset(incmdparts,0,sizeof(incmdparts));
+					sprintf(incmd,"%s",client_message);
+					printf("\n$");
+
+
+					memcpy(incmd1,incmd,1000);
+					char * token=NULL, *saveptr1=NULL, *str1=incmd;
+					int count=0;
+					for (count = 0 ; ; count++, str1 = NULL) {
+						token = strtok_r(str1,(char *)" ", &saveptr1);
+						if (token == NULL){
+
+							break;
+						}
+						strcpy(incmdparts[count],token);
+					}
+
+
+
+					int cmdfound=-1;
+					for(int i=0;i<maxcmds;i++){
+						if(strcmp(incmdparts[0],cmdlist[i])==0){
+							cmdfound=i;
+							break;
+						}
+					}
+
+
+					switch(cmdfound){
+
+					case 0:
+						call_ls(incmdparts,count);
+						break;
+					case 1:
+						call_cd(incmdparts,count);
+						break;
+
+					case 2:
+						serve_chmod(incmdparts,count);
+						break;
+					case 3:
+						//put
+						// send file to server
+						serve_put(incmdparts,count);
+						break;
+					case 4:
+						//get
+						// get file from server
+						serve_get(incmdparts,count);
+						break;
+					case 5:
+						//close
+						// disconnect from the server
+						close(sock);
+						ClientCount(0);
+						kill(getpid(),SIGTERM);
+
+
+						break;
+					default:
+					{
+						int ret = 0;
+						char buffer[1000];
+						memset(buffer,0,sizeof(buffer));
+						sprintf(buffer,"/bin/%s",incmd);
+						ret = fork();
+						if(ret ==0){
+							execlp(buffer,buffer,NULL);
+						}else{
+							wait(NULL);
+						}
+					}
+					}
+
+					sleep(1);
+				}
+			}
+
+		}
 		else
 		{
-			printf("Client reply :: %s recieved\n",client_message);
-
-			char incmd[1000],incmd1[1000];
-			char incmdparts[M][N];
-			memset(incmd,0,sizeof(incmd));
-			memset(incmdparts,0,sizeof(incmdparts));
-			sprintf(incmd,"%s",client_message);
-			printf("\n$");
-
-
-			memcpy(incmd1,incmd,1000);
-			char * token=NULL, *saveptr1=NULL, *str1=incmd;
-			int count=0;
-			for (count = 0 ; ; count++, str1 = NULL) {
-				token = strtok_r(str1,(char *)" ", &saveptr1);
-				if (token == NULL){
-
-					break;
-				}
-				strcpy(incmdparts[count],token);
-			}
-
-
-
-			int cmdfound=-1;
-			for(int i=0;i<maxcmds;i++){
-				if(strcmp(incmdparts[0],cmdlist[i])==0){
-					cmdfound=i;
-					break;
-				}
-			}
-
-
-			switch(cmdfound){
-
-			case 0:
-				call_ls(incmdparts,count);
-				break;
-			case 1:
-				call_cd(incmdparts,count);
-				break;
-
-			case 2:
-				serve_chmod(incmdparts,count);
-				break;
-			case 3:
-				//put
-				// send file to server
-				serve_put(incmdparts,count);
-				break;
-			case 4:
-				//get
-				// get file from server
-				serve_get(incmdparts,count);
-				break;
-			case 5:
-				//close
-				// disconnect from the server
-				close(sock);
-				break;
-			default:
-			{
-				int ret = 0;
-				char buffer[1000];
-				memset(buffer,0,sizeof(buffer));
-				sprintf(buffer,"/bin/%s",incmd);
-				ret = fork();
-				if(ret ==0){
-					execlp(buffer,buffer,NULL);
-				}else{
-					wait(NULL);
-				}
-			}
-			}
-
-
-			sleep(1);
+			close(sock);
 		}
 	}
+
 	return 0;
 }
 

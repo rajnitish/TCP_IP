@@ -166,15 +166,24 @@ void ftpclientsendtoserver(char incmd[1000],char incmdparts[M][N])
 	return;
 }
 
-int ftpservedisconnect()
+void ftpservedisconnect()
 {
+
+	char incmd[100];
+	memset(incmd,0,100);
+	memcpy(incmd,"close",sizeof("close"));
+	//Send data to the server
+	SocketSend(hSocket, incmd, strlen(incmd));
+
+	sleep(1);
+
 	close(hSocket);
 	shutdown(hSocket,0);
 	shutdown(hSocket,1);
 	shutdown(hSocket,2);
+	printf("Connection Closed... Exiting... \n\n");
 
-
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 void callpwd()
@@ -383,6 +392,7 @@ int mymain(int argc, char *argv[]) {
 			//close
 			// disconnect from the server
 			ftpservedisconnect();
+			exit(1);
 			break;
 		default:
 		{

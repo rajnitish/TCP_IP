@@ -5,6 +5,7 @@
 #include<stdio.h>
 char ipcmd[100]={0};
 char opcmd[10000]={0};
+
 FILE *fp;
 int status;
 
@@ -21,10 +22,10 @@ if (fp == NULL){
 
 
 while (fgets(path, sizeof(path), fp) != NULL){
-    //printf("%s", opcmd);
+    printf("%s\n", opcmd);
     strcat(opcmd,path);
 }
-printf("%s", opcmd);
+//printf("%s", opcmd);
 status = pclose(fp);
  //sleep(1);
  return;
